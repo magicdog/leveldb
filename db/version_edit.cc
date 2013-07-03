@@ -38,6 +38,7 @@ void VersionEdit::Clear() {
   new_files_.clear();
 }
 
+// encode the versionedit to string
 void VersionEdit::EncodeTo(std::string* dst) const {
   if (has_comparator_) {
     PutVarint32(dst, kComparator);
@@ -106,6 +107,7 @@ static bool GetLevel(Slice* input, int* level) {
   }
 }
 
+// initial the versionedit from string
 Status VersionEdit::DecodeFrom(const Slice& src) {
   Clear();
   Slice input = src;

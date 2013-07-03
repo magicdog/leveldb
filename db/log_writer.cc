@@ -15,8 +15,9 @@ namespace log {
 Writer::Writer(WritableFile* dest)
     : dest_(dest),
       block_offset_(0) {
+  // record type : full middle front last
   for (int i = 0; i <= kMaxRecordType; i++) {
-    char t = static_cast<char>(i);
+    char t = static_cast<char>(i);  // use static_cast instead of (char).
     type_crc_[i] = crc32c::Value(&t, 1);
   }
 }
@@ -37,6 +38,7 @@ Status Writer::AddRecord(const Slice& slice) {
     const int leftover = kBlockSize - block_offset_;
     assert(leftover >= 0);
     if (leftover < kHeaderSize) {
+
       // Switch to a new block
       if (leftover > 0) {
         // Fill the trailer (literal below relies on kHeaderSize being 7)
@@ -81,12 +83,14 @@ Status Writer::EmitPhysicalRecord(RecordType t, const char* ptr, size_t n) {
   buf[4] = static_cast<char>(n & 0xff);
   buf[5] = static_cast<char>(n >> 8);
   buf[6] = static_cast<char>(t);
+  // 0-3 : CRC  4-5:length 6:type 
 
   // Compute the crc of the record type and the payload.
   uint32_t crc = crc32c::Extend(type_crc_[t], ptr, n);
   crc = crc32c::Mask(crc);                 // Adjust for storage
-  EncodeFixed32(buf, crc);
-
+  EncodeFixed32(buf, crc);  // put the fixed int to a char* buffer[0-3]
+  // end the fill header
+  
   // Write the header and the payload
   Status s = dest_->Append(Slice(buf, kHeaderSize));
   if (s.ok()) {

@@ -33,8 +33,9 @@ Reader::~Reader() {
 }
 
 bool Reader::SkipToInitialBlock() {
-  size_t offset_in_block = initial_offset_ % kBlockSize;
-  uint64_t block_start_location = initial_offset_ - offset_in_block;
+    // skip to the block that contains the initial offset
+  size_t offset_in_block = initial_offset_ % kBlockSize; // the offset in block 
+  uint64_t block_start_location = initial_offset_ - offset_in_block; //in which block
 
   // Don't search a block if we'd be in the trailer
   if (offset_in_block > kBlockSize - 6) {
@@ -182,7 +183,8 @@ unsigned int Reader::ReadPhysicalRecord(Slice* result) {
       if (!eof_) {
         // Last read was a full read, so this is a trailer to skip
         buffer_.clear();
-        Status status = file_->Read(kBlockSize, &buffer_, backing_store_);
+        Status status = file_->Read(kBlockSize, &buffer_, backing_store_); // read a full block once a time
+
         end_of_buffer_offset_ += buffer_.size();
         if (!status.ok()) {
           buffer_.clear();

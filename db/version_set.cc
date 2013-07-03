@@ -224,8 +224,8 @@ static Iterator* GetFileIterator(void* arg,
         Status::Corruption("FileReader invoked with unexpected value"));
   } else {
     return cache->NewIterator(options,
-                              DecodeFixed64(file_value.data()),
-                              DecodeFixed64(file_value.data() + 8));
+                              DecodeFixed64(file_value.data()),  // number
+                              DecodeFixed64(file_value.data() + 8));// filesize
   }
 }
 
@@ -542,7 +542,7 @@ class VersionSet::Builder {
 
   VersionSet* vset_;
   Version* base_;
-  LevelState levels_[config::kNumLevels];
+  LevelState levels_[config::kNumLevels]; // record the deleted and added file info.
 
  public:
   // Initialize a builder with the files from *base and other info from *vset
@@ -728,7 +728,7 @@ void VersionSet::AppendVersion(Version* v) {
   v->Ref();
 
   // Append to linked list
-  v->prev_ = dummy_versions_.prev_;
+  v->prev_ = dummy_versions_.prev_; // head of double linked list.
   v->next_ = &dummy_versions_;
   v->prev_->next_ = v;
   v->next_->prev_ = v;
@@ -838,15 +838,16 @@ Status VersionSet::Recover() {
   // Read "CURRENT" file, which contains a pointer to the current manifest file
   std::string current;
   Status s = ReadFileToString(env_, CurrentFileName(dbname_), &current);
+  // read the data from current file to current. contains the descrip file that used
   if (!s.ok()) {
     return s;
   }
   if (current.empty() || current[current.size()-1] != '\n') {
     return Status::Corruption("CURRENT file does not end with newline");
   }
-  current.resize(current.size() - 1);
+  current.resize(current.size() - 1); // remove the '\n'
 
-  std::string dscname = dbname_ + "/" + current;
+  std::string dscname = dbname_ + "/" + current; // combine the discription file
   SequentialFile* file;
   s = env_->NewSequentialFile(dscname, &file);
   if (!s.ok()) {
@@ -861,15 +862,16 @@ Status VersionSet::Recover() {
   uint64_t last_sequence = 0;
   uint64_t log_number = 0;
   uint64_t prev_log_number = 0;
-  Builder builder(this, current_);
+  Builder builder(this, current_); // versionset and version
 
   {
     LogReporter reporter;
     reporter.status = &s;
-    log::Reader reader(file, &reporter, true/*checksum*/, 0/*initial_offset*/);
+    log::Reader reader(file, &reporter, true/*checksum*/, 0/*initial_offset*/); // prepare to read description file
     Slice record;
     std::string scratch;
     while (reader.ReadRecord(&record, &scratch) && s.ok()) {
+        //every record is a versionedit
       VersionEdit edit;
       s = edit.DecodeFrom(record);
       if (s.ok()) {
@@ -882,7 +884,7 @@ Status VersionSet::Recover() {
       }
 
       if (s.ok()) {
-        builder.Apply(&edit);
+        builder.Apply(&edit); // apply the changes stored in edit to current version.
       }
 
       if (edit.has_log_number_) {
@@ -930,7 +932,7 @@ Status VersionSet::Recover() {
     Version* v = new Version(this);
     builder.SaveTo(v);
     // Install recovered version
-    Finalize(v);
+    Finalize(v); // decide which level shoud be compacted.
     AppendVersion(v);
     manifest_file_number_ = next_file;
     next_file_number_ = next_file + 1;

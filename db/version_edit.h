@@ -84,7 +84,7 @@ class VersionEdit {
  private:
   friend class VersionSet;
 
-  typedef std::set< std::pair<int, uint64_t> > DeletedFileSet;
+  typedef std::set< std::pair<int, uint64_t> > DeletedFileSet; //level:fileno
 
   std::string comparator_;
   uint64_t log_number_;
@@ -97,9 +97,9 @@ class VersionEdit {
   bool has_next_file_number_;
   bool has_last_sequence_;
 
-  std::vector< std::pair<int, InternalKey> > compact_pointers_;
+  std::vector< std::pair<int, InternalKey> > compact_pointers_; // level:internalkey
   DeletedFileSet deleted_files_;
-  std::vector< std::pair<int, FileMetaData> > new_files_;
+  std::vector< std::pair<int, FileMetaData> > new_files_; // level:newfilemeta
 };
 
 }  // namespace leveldb
